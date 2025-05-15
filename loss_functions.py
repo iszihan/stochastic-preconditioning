@@ -2,8 +2,7 @@ import torch
 import torch.nn.functional as F
 import modules
 from arrgh import arrgh 
-
-
+import diff_operators
 
 def sdf(model_output, gt, sdf_coeff=3e3, inter_coeff=1e2, normal_coeff=1e2, grad_coeff=5e1, train_type='pn', use_gradient=True):
     '''

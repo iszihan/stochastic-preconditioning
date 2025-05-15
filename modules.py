@@ -647,28 +647,51 @@ class INGP(MetaModule):
                                                         create_graph=True,
                                                         retain_graph=True,
                                                         only_inputs=True)[0]             
-            elif self.opt.encoding_type == 'hashgrid' and not self.stochasticP:
-                hgf = self.tcnn_encoding(coords_for_grad_normalized.squeeze().clamp(0,1))
-                if self.geoinit:
-                    inputs = torch.cat([coords_for_grad.squeeze(), hgf], dim=-1)
-                else:
-                    inputs = hgf.float()
-                out = inputs
-                for l in range(0, self.num_layers - 1):
-                    lin = getattr(self, "glin" + str(l))
-                    if l in self.skip_in:
-                        out = torch.cat([out, inputs], 1) / np.sqrt(2)
-                    out = lin(out)
-                    if l < self.num_layers - 2:
-                        out = self.softplus(out)
-                gradients = torch.autograd.grad(outputs=out, 
-                                                inputs=coords_for_grad, 
-                                                grad_outputs=torch.ones_like(out, requires_grad=False, device=out.device), 
-                                                create_graph=True,
-                                                retain_graph=True,
-                                                only_inputs=True)[0]       
-            elif self.opt.encoding_type == 'hashgrid' and self.stochasticP:
-                gradients = None
+            elif self.opt.encoding_type == 'hashgrid':
+                if (not self.stochasticP or self.opt.stc_normal_loss == 'y'):
+                    if self.stochasticP:
+                        mean = torch.zeros_like(coords_for_grad[0])
+                        sd = torch.ones_like(coords_for_grad[0]) 
+                        noise = self.sp_alpha * torch.normal(mean, sd)
+                        coords = coords_for_grad_normalized + noise
+                        # reflect around boundary
+                        coords = coords % 2 
+                        coords[coords>1] = 2 - coords[coords>1]
+                        hgf = self.tcnn_encoding(coords.squeeze().clamp(0,1))
+                        if self.geoinit:
+                            inputs = torch.cat([coords_for_grad.squeeze(), hgf], dim=-1)
+                        else:
+                            inputs = hgf.float()
+                        out = inputs
+                        for l in range(0, self.num_layers - 1):
+                            lin = getattr(self, "glin" + str(l))
+                            if l in self.skip_in:
+                                out = torch.cat([out, inputs], 1) / np.sqrt(2)
+                            out = lin(out)
+                            if l < self.num_layers - 2:
+                                out = self.softplus(out)
+                
+                    else:
+                        hgf = self.tcnn_encoding(coords_for_grad_normalized.squeeze().clamp(0,1))
+                        if self.geoinit:
+                            inputs = torch.cat([coords_for_grad.squeeze(), hgf], dim=-1)
+                        else:
+                            inputs = hgf.float()
+                        out = inputs
+                        for l in range(0, self.num_layers - 1):
+                            lin = getattr(self, "glin" + str(l))
+                            if l in self.skip_in:
+                                out = torch.cat([out, inputs], 1) / np.sqrt(2)
+                            out = lin(out)
+                            if l < self.num_layers - 2:
+                                out = self.softplus(out)
+                    gradients = torch.autograd.grad(outputs=out, 
+                                                    inputs=coords_for_grad, 
+                                                    grad_outputs=torch.ones_like(out, requires_grad=False, device=out.device), 
+                                                    create_graph=True,
+                                                    retain_graph=True,
+                                                    only_inputs=True)[0]       
+                    
             else:
                 inputs = coords_for_grad.squeeze()
                 out = inputs
@@ -689,105 +712,150 @@ class INGP(MetaModule):
         # get outputs 
         coords_org = input['coords']
         coords = ( coords_org + 1.0 ) / 2.0 # to [0,1]
+        if self.stochasticP:
+            mean = torch.zeros_like(coords[0])
+            sd = torch.ones_like(coords[0]) 
+            noise = self.sp_alpha * torch.normal(mean, sd)
+            coords = coords + noise
+            # reflect around boundary
+            coords = coords % 2 
+            coords[coords>1] = 2 - coords[coords>1]
+            
         if self.opt.encoding_type == 'fourier':
-            if self.stochasticP:
-                mean = torch.zeros_like(coords[0])
-                sd = torch.ones_like(coords[0]) 
-                noise = self.sp_alpha * torch.normal(mean, sd)
-                coords = coords + noise
-                # reflect around boundary
-                coords = coords % 2 
-                coords[coords>1] = 2 - coords[coords>1]
-                if self.opt.stc_normal_loss=='n':
-                    gradients = None
-                # unnormalize to [-1,1]
-                coords_org = coords * 2.0 - 1.0      
+            # unnormalize to [-1,1]
+            coords_org = coords * 2.0 - 1.0      
             pe = self.position_encoding(coords_org.squeeze())
             if self.geoinit:
                 inputs = torch.cat((coords_org.squeeze(), pe), dim=-1)
             else:
                 inputs = pe.float()
-            out = inputs
-            for l in range(0, self.num_layers - 1):
-                lin = getattr(self, "glin" + str(l))
-                if l in self.skip_in:
-                    out = torch.cat([out, inputs], 1) / np.sqrt(2)
-                out = lin(out)
-                if l < self.num_layers - 2:
-                    out = self.softplus(out)                         
         elif self.opt.encoding_type == 'pet':
-            if self.stochasticP:
-                mean = torch.zeros_like(coords[0])
-                sd = torch.ones_like(coords[0]) 
-                noise = self.sp_alpha * torch.normal(mean, sd)
-                coords = coords + noise
-                # reflect around boundary
-                coords = coords % 2 
-                coords[coords>1] = 2 - coords[coords>1]
-                if self.opt.stc_normal_loss=='n':
-                    gradients = None
-                # unnormalize to [-1,1]
-                coords_org = coords * 2.0 - 1.0        
+            # unnormalize to [-1,1]
+            coords_org = coords * 2.0 - 1.0        
             pe = self.triplane_encoding(coords_org.squeeze(0))
             if self.geoinit:
                 inputs = torch.cat((coords_org.squeeze(), pe), dim=-1)
             else:
                 inputs = pe.float()
-            out = inputs
-            for l in range(0, self.num_layers - 1):
-                lin = getattr(self, "glin" + str(l))
-                if l in self.skip_in:
-                    out = torch.cat([out, inputs], 1) / np.sqrt(2)
-                out = lin(out)
-                if l < self.num_layers - 2:
-                    out = self.softplus(out)                          
         elif self.opt.encoding_type == 'hashgrid':
-            if self.stochasticP:
-                mean = torch.zeros_like(coords[0])
-                sd = torch.ones_like(coords[0]) 
-                noise = self.sp_alpha * torch.normal(mean, sd)
-                coords = coords + noise
-                # reflect around boundary
-                coords = coords % 2 
-                coords[coords>1] = 2 - coords[coords>1]
-                gradients = None
-            hgf = self.tcnn_encoding(coords.squeeze())
+            pe = self.tcnn_encoding(coords.squeeze())
             if self.geoinit:
-                inputs = torch.cat([coords_org.squeeze(), hgf], dim=-1)
+                inputs = torch.cat((coords_org.squeeze(), pe), dim=-1)
             else:
-                inputs = hgf.float()
-            out = inputs
-            for l in range(0, self.num_layers - 1):
-                    lin = getattr(self, "glin" + str(l))
-                    if l in self.skip_in:
-                        out = torch.cat([out, inputs], 1) / np.sqrt(2)
-                    out = lin(out)
-                    if l < self.num_layers - 2:
-                        out = self.softplus(out)
+                inputs = pe.float()
         else:
-            if self.stochasticP:
-                mean = torch.zeros_like(coords[0])
-                sdf = torch.ones_like(coords[0]) / 3.0
-                noise = self.sp_alpha * torch.normal(mean, sdf)
-                coords = coords + noise
-                coords = coords % 2 
-                coords[coords>1] = 2 - coords[coords>1]
-                coords = coords * 2.0 - 1.0
-                gradients = None
-            else:
-                coords = coords_org
-        
+            coords = coords * 2.0 - 1.0 
             inputs = coords.squeeze()
-            out = inputs
-            for l in range(0, self.num_layers - 1):
-                lin = getattr(self, "glin" + str(l))
-                if l in self.skip_in:
-                    out = torch.cat([out, inputs], 1) / np.sqrt(2)
-                out = lin(out)
-                if l < self.num_layers - 2:
-                    out = self.softplus(out)
+            
+        out = inputs
+        for l in range(0, self.num_layers - 1):
+            lin = getattr(self, "glin" + str(l))
+            if l in self.skip_in:
+                out = torch.cat([out, inputs], 1) / np.sqrt(2)
+            out = lin(out)
+            if l < self.num_layers - 2:
+                out = self.softplus(out)   
+                                  
+        
+        # if self.opt.encoding_type == 'fourier':
+        #     if self.stochasticP:
+        #         mean = torch.zeros_like(coords[0])
+        #         sd = torch.ones_like(coords[0]) 
+        #         noise = self.sp_alpha * torch.normal(mean, sd)
+        #         coords = coords + noise
+        #         # reflect around boundary
+        #         coords = coords % 2 
+        #         coords[coords>1] = 2 - coords[coords>1]
+        #         if self.opt.stc_normal_loss=='n':
+        #             gradients = None
+        #         # unnormalize to [-1,1]
+        #         coords_org = coords * 2.0 - 1.0      
+        #     pe = self.position_encoding(coords_org.squeeze())
+        #     if self.geoinit:
+        #         inputs = torch.cat((coords_org.squeeze(), pe), dim=-1)
+        #     else:
+        #         inputs = pe.float()
+        #     out = inputs
+        #     for l in range(0, self.num_layers - 1):
+        #         lin = getattr(self, "glin" + str(l))
+        #         if l in self.skip_in:
+        #             out = torch.cat([out, inputs], 1) / np.sqrt(2)
+        #         out = lin(out)
+        #         if l < self.num_layers - 2:
+        #             out = self.softplus(out)                         
+        # elif self.opt.encoding_type == 'pet':
+        #     if self.stochasticP:
+        #         mean = torch.zeros_like(coords[0])
+        #         sd = torch.ones_like(coords[0]) 
+        #         noise = self.sp_alpha * torch.normal(mean, sd)
+        #         coords = coords + noise
+        #         # reflect around boundary
+        #         coords = coords % 2 
+        #         coords[coords>1] = 2 - coords[coords>1]
+        #         if self.opt.stc_normal_loss=='n':
+        #             gradients = None
+        #         # unnormalize to [-1,1]
+        #         coords_org = coords * 2.0 - 1.0        
+        #     pe = self.triplane_encoding(coords_org.squeeze(0))
+        #     if self.geoinit:
+        #         inputs = torch.cat((coords_org.squeeze(), pe), dim=-1)
+        #     else:
+        #         inputs = pe.float()
+        #     out = inputs
+        #     for l in range(0, self.num_layers - 1):
+        #         lin = getattr(self, "glin" + str(l))
+        #         if l in self.skip_in:
+        #             out = torch.cat([out, inputs], 1) / np.sqrt(2)
+        #         out = lin(out)
+        #         if l < self.num_layers - 2:
+        #             out = self.softplus(out)                          
+        # elif self.opt.encoding_type == 'hashgrid':
+        #     if self.stochasticP:
+        #         mean = torch.zeros_like(coords[0])
+        #         sd = torch.ones_like(coords[0]) 
+        #         noise = self.sp_alpha * torch.normal(mean, sd)
+        #         coords = coords + noise
+        #         # reflect around boundary
+        #         coords = coords % 2 
+        #         coords[coords>1] = 2 - coords[coords>1]
+        #     hgf = self.tcnn_encoding(coords.squeeze())
+        #     if self.geoinit:
+        #         inputs = torch.cat([coords_org.squeeze(), hgf], dim=-1)
+        #     else:
+        #         inputs = hgf.float()
+        #     out = inputs
+        #     for l in range(0, self.num_layers - 1):
+        #             lin = getattr(self, "glin" + str(l))
+        #             if l in self.skip_in:
+        #                 out = torch.cat([out, inputs], 1) / np.sqrt(2)
+        #             out = lin(out)
+        #             if l < self.num_layers - 2:
+        #                 out = self.softplus(out)
+        # else:
+        #     if self.stochasticP:
+        #         mean = torch.zeros_like(coords[0])
+        #         sdf = torch.ones_like(coords[0]) / 3.0
+        #         noise = self.sp_alpha * torch.normal(mean, sdf)
+        #         coords = coords + noise
+        #         coords = coords % 2 
+        #         coords[coords>1] = 2 - coords[coords>1]
+        #         coords = coords * 2.0 - 1.0
+        #         gradients = None
+        #     else:
+        #         coords = coords_org
+        
+        #     inputs = coords.squeeze()
+        #     out = inputs
+        #     for l in range(0, self.num_layers - 1):
+        #         lin = getattr(self, "glin" + str(l))
+        #         if l in self.skip_in:
+        #             out = torch.cat([out, inputs], 1) / np.sqrt(2)
+        #         out = lin(out)
+        #         if l < self.num_layers - 2:
+        #             out = self.softplus(out)
             
         if torch.is_grad_enabled() and self.training:
+            
             return {'model_in': coords_org, 
                     'model_out': out.unsqueeze(0),
                     'model_grad': gradients}

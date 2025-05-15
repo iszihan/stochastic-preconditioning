@@ -1,0 +1,10 @@
+ngc workspace upload sling --source experiment_scripts --destination /home/sling/projects/siren/experiment_scripts
+ngc workspace upload sling --source scripts --destination /home/sling/projects/siren/scripts
+ngc workspace upload sling --source dataio.py --destination /home/sling/projects/siren/
+ngc workspace upload sling --source eval.py --destination /home/sling/projects/siren/
+ngc workspace upload sling --source maketable.py --destination /home/sling/projects/siren/
+ngc workspace upload sling --source modules.py --destination /home/sling/projects/siren/
+ngc workspace upload sling --source sdf_meshing.py --destination /home/sling/projects/siren/
+ngc workspace upload sling --source training.py --destination /home/sling/projects/siren/
+ngc workspace upload sling --source utils.py --destination /home/sling/projects/siren/
+ngc workspace upload sling --source loss_functions.py --destination /home/sling/projects/siren/

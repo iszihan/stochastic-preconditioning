@@ -90,7 +90,7 @@ for (( i=1; i<num_args; i++ )); do
     # --geoinit_bias 0.1 \
     # --stc_type sched 
 
-    CUDA_VISIBLE_DEVICES=$gpui python experiment_scripts/train_sdf.py \
+    echo CUDA_VISIBLE_DEVICES=$gpui python experiment_scripts/train_sdf.py \
     --wandb_proj "Point-Normal SDF Fitting Camera-Ready" \
     --model_type stc_ingp \
     --point_cloud_path=$item \

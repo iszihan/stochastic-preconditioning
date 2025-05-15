@@ -263,10 +263,10 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
                             self.model = model
                         def forward(self, coords):
                             model_in = {'coords': coords}
-                            stochastic_state =self.model.stochastic
-                            self.model.stochastic = False 
+                            stochastic_state =self.model.stochasticP
+                            self.model.stochasticP = False 
                             out = self.model(model_in)['model_out']
-                            self.model.stochastic = stochastic_state
+                            self.model.stochasticP = stochastic_state
                             return out 
                     sdf_decoder = SDFDecoder(model)
                     sdf_meshing.create_mesh(sdf_decoder, os.path.join(opt.outdir, str(total_steps)), N=opt.resolution, opt=opt)
@@ -299,27 +299,18 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
                     optim.step(closure)
                     
                 scalars = {}
-                if model.stochastic:
-                    if opt.stc_type == 'sched':
-                        if total_steps < opt.stc_start:
-                            model.stc_size = opt.stc_init
-                            scalars.update({'train/stc_size': model.stc_size})
-                        elif total_steps >= opt.stc_start and total_steps < opt.stc_end:
-                            current_step = float((total_steps - opt.stc_start)) 
-                            current_prog = current_step / float(opt.stc_end - opt.stc_start)
-                            model.stc_size = 1.0 / ( (1.0 / opt.stc_init) * model.growth_factor ** current_prog )
-                            scalars.update({'train/stc_size': model.stc_size})
-                        elif total_steps >= opt.stc_end:
-                            model.stochastic = False 
-                    elif opt.stc_type == 'optim':
-                        if total_steps > opt.stc_end:
-                            model.stochastic = False
-                            model.kernel_grid.requires_grad_(False)
-                        elif total_steps <= opt.stc_end and opt.stc_alternate == 'y':
-                            if total_steps % 2 == 0:
-                                model.stochastic = False 
-                            else:
-                                model.stochastic = True 
+                if model.stochasticP:
+                    if total_steps < opt.stc_start:
+                        model.sp_alpha = opt.stc_init
+                        scalars.update({'train/sp_alpha': model.sp_alpha})
+                    elif total_steps >= opt.stc_start and total_steps < opt.stc_end:
+                        current_step = float((total_steps - opt.stc_start)) 
+                        current_prog = current_step / float(opt.stc_end - opt.stc_start)
+                        model.sp_alpha = 1.0 / ( (1.0 / opt.stc_init) * model.growth_factor ** current_prog )
+                        scalars.update({'train/sp_alpha': model.sp_alpha})
+                    elif total_steps >= opt.stc_end:
+                        model.stochasticP = False 
+                     
                     
                 model_output = model(model_input)
                 losses = loss_fn(model_output, gt, 
@@ -344,13 +335,6 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
                     train_loss += single_loss
                 scalars['loss/total'] = train_loss
                 scalars['loss/log_total'] = torch.log(train_loss).item()
-                if 'stc' in opt.model_type and model.stc_type == 'optim':
-                    scalars['train/kernel_min'] = torch.exp(model.kernel_grid.min()).item()
-                    scalars['train/kernel_max'] = torch.exp(model.kernel_grid.max()).item()
-                    scalars['train/kernel_mean'] = torch.exp(model.kernel_grid.mean()).item()
-                    scalars['train/levels_min'] = model.levels.min().item()
-                    scalars['train/levels_max'] = model.levels.max().item()
-                    scalars['train/levels_mean'] = model.levels.mean().item()
                 wandb.log(scalars)
 
                 train_losses.append(train_loss.item())

@@ -1,7 +1,5 @@
 import torch
 import torch.nn.functional as F
-
-import diff_operators
 import modules
 from arrgh import arrgh 
 

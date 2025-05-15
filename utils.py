@@ -3,11 +3,9 @@ import numpy as np
 import torch
 import dataio
 import os
-import diff_operators
 from torchvision.utils import make_grid, save_image
 import skimage.measure
 import cv2
-import meta_modules
 import scipy.io.wavfile as wavfile
 import cmapy
 
@@ -287,8 +285,8 @@ def write_sdf_summary(model, model_input, gt, model_output, writer, total_steps,
     with torch.no_grad():
         
         # turn off stochasticity 
-        model_stochastic = model.stochastic
-        model.stochastic = False
+        model_stochasticP = model.stochasticP
+        model.stochasticP = False
         
         images = {}
         yz_slice_coords = torch.cat((torch.zeros_like(slice_coords_2d[:, :1]), slice_coords_2d), dim=-1)
@@ -350,7 +348,7 @@ def write_sdf_summary(model, model_input, gt, model_output, writer, total_steps,
         images.update({'xy_sdf_slice': wandb_image(xy_fig_array, from_range=(0,255))})
         
         # Log kernel grid 
-        if 'stc' in opt.model_type and model.stochastic and model.stc_type =='optim': 
+        if 'stc' in opt.model_type and model.stochasticP and model.stc_type =='optim': 
             idx = model.kernel_grid.shape[0] // 2
             kernel_slice_0_raw = model.kernel_grid[idx:idx+1, :, :].permute(1,2,0).repeat(1,1,3) #.permute(1,2,0) #.detach().cpu().numpy()
             kernel_slice_1_raw = model.kernel_grid[:, idx:idx+1, :].permute(0,2,1).repeat(1,1,3) #.detach().cpu().numpy()
@@ -406,7 +404,7 @@ def write_sdf_summary(model, model_input, gt, model_output, writer, total_steps,
         min_max_summary(prefix + 'coords', model_input['coords'], writer, total_steps)
 
         # turn back on stochasticty if it was on 
-        model.stochastic = model_stochastic
+        model.stochasticP = model_stochasticP
         
 
 def hypernet_activation_summary(model, model_input, gt, model_output, writer, total_steps, prefix='train_'):

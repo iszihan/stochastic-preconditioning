@@ -10,7 +10,7 @@
 ACM Transaction on Graphics (Proceedings of SIGGRAPH North America 2025)
 
 ## Get started
-You can then set up a conda environment with all dependencies like so:
+You can set up a conda environment with all dependencies like so:
 ```
 conda create --name stcp python=3.8
 conda activate stcp

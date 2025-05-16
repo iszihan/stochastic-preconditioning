@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ## SDF from Oriented Point Cloud Experiment
 We provide code for the SDF fitting from Oriented Point Cloud experiment as described in Section 5.1.1.
 
-We experiment with a variety of neural field representations:
+For this experiment, we show benefits with a variety of neural field representations:
 
 ### Hash Grid Encoding 
 Run `train_hashgrid.sh` for training with hash grid encoding without and with stochastic preconditioning.
@@ -33,9 +33,9 @@ Run `train_fourier.sh` for training with fourier feature encoding without and wi
 Run `train_pet.sh` for training with [triplane-based feature encoding](https://github.com/yiqun-wang/PET-NeuS) without and with stochastic preconditioning:
 
 ### Mesh Extraction
-After training, one can run the following script to extract a mesh from a specified checkpoint: 
+The training scripts above always extract a mesh at the end of training. One can also run the following script to extract a mesh from a specified checkpoint: 
 ```
-python experiment_scripts/test_sdf.py --checkpoint_path './logs/EXPNAME/checkpoints/model_latest.pth' --experiment_name EXPNAME --out_name OUTPUTNAME
+python experiment_scripts/test_sdf.py --checkpoint_path './logs/EXPNAME/checkpoints/CKPTNAME.pth' --experiment_name EXPNAME --out_name OUTPUTNAME
 ```
 
 ## Credits 

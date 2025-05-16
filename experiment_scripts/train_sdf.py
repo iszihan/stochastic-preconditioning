@@ -21,10 +21,10 @@ p.add('-c', '--config_filepath', required=False, is_config_file=True, help='Path
 p.add_argument('--logging_root', type=str, default='./logs', help='root for logging')
 p.add_argument('--experiment_name', type=str, required=True,
                help='Name of subdirectory in logging_root where summaries and checkpoints will be saved.')
-p.add_argument('--save_results_per_step', type=int, default=-1, help='Whether to save results for visualization every n step, disabled if < 0.')
-p.add_argument('--save_results_min_step', type=int, default=30, help='Which step to start saving results for visualization every n step.')
-p.add_argument('--save_results_max_step', type=int, default=-1, help='Which step to stop saving results for visualization every n step.')
-p.add_argument('--online', default='n', help='Whether to log with wandb.')
+p.add_argument('--save_results_per_step', type=int, default=1000, help='Whether to save results for visualization every n step, disabled if < 0.')
+p.add_argument('--save_results_min_step', type=int, default=3000, help='Which step to start saving results for visualization every n step.')
+p.add_argument('--save_results_max_step', type=int, default=10000, help='Which step to stop saving results for visualization every n step.')
+p.add_argument('--online', default='y', help='Whether to log with wandb.')
 p.add_argument('--wandb_proj', default="Point-Normal SDF Fitting", type=str, help='project name for wandb')
 
 # Input
@@ -33,7 +33,7 @@ p.add_argument('--point_cloud_path', type=str, default='./data/armadillo.obj',
 
 # General training options
 p.add_argument('--model_type', type=str, default='ingp',
-               help='Which model architecture.')
+               help='Which model architecture. [ingp, finer]')
 p.add_argument('--batch_size', type=int, default=250000)
 p.add_argument('--lr', type=float, default=1e-4, help='learning rate. default=5e-5')
 p.add_argument('--num_epochs', type=int, default=700,
@@ -44,7 +44,7 @@ p.add_argument('--steps_for_ckpt', type=str, default='5000-6000-8000-10000')
 p.add_argument('--steps_til_summary', type=int, default=100,
                help='Time interval in seconds until tensorboard summary is saved.')
 p.add_argument('--checkpoint_path', default=None, help='Checkpoint to trained model.')
-p.add_argument('--train_type',default='pn',type=str, help='type of trainig [pn: point normal, p: point only]')
+p.add_argument('--train_type',default='pn',type=str, help='Type of trainig [pn: point normal, p: point only]')
 p.add_argument('--seed', default=1010, type=int, help='Seed for reproducibility.')
 
 # Losses
@@ -55,7 +55,7 @@ p.add_argument('--grad_coeff', default=5e1, help='Coefficient for SDF loss')
 
 # Geometric initialization 
 p.add_argument('--geoinit', default='y', help='Whether to log with wandb.')
-p.add_argument('--geoinit_bias', default=0.8, help='Geometric init bias.')
+p.add_argument('--geoinit_bias', default=0.1, help='Geometric init bias.')
 
 # Stochastic preconditioning
 p.add_argument('--sp', type=str, default='n',
@@ -65,10 +65,9 @@ p.add_argument('--stc_start', default=2000, type=int, help='Number of steps to t
 p.add_argument('--stc_end', default=5000, type=int, help='Number of steps to train with stochasticity in total.')
 p.add_argument('--stc_normal_loss', default='n', help='Whether to train with normal loss during stochastic phase.')
 
-p.add_argument('--encoding_type', default='hashgrid', type=str, help='Which encoding to use [hashgrid, fourier, triplane].')
-p.add_argument('--fourier_num_freq', default=6, help='Number of frequency for fourier feature.')
+p.add_argument('--encoding_type', default='hashgrid', type=str, help='Which encoding to use [hashgrid, fourier, pet].')
+p.add_argument('--fourier_num_freq', default=12, help='Number of frequency for fourier feature.')
 p.add_argument('--tri_res', default=128, help='Resolution of triplane.')
-p.add_argument('--tri_n', default=16, help='Number of component in triplane encoding.')
 p.add_argument('--tcnn', default='reg', type=str, help='Which tcnn to use.')
 p.add_argument('--log2_hashmap_size', default=19, type=int, help='Log 2 hash map size.')
 p.add_argument('--resolution', type=int, default=1024)
@@ -125,6 +124,7 @@ model = modules.INGP(stochasticP=(opt.sp=='y'),
                      geoinit=(opt.geoinit=='y'), 
                      bias=float(opt.geoinit_bias), 
                      num_freq = int(opt.fourier_num_freq),
+                     tri_res = int(opt.tri_res),
                      opt=opt)
 model.cuda()
 

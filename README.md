@@ -12,20 +12,30 @@ ACM Transaction on Graphics (Proceedings of SIGGRAPH North America 2025)
 ## Get started
 You can then set up a conda environment with all dependencies like so:
 ```
-conda env create -f environment.yml
-conda activate siren
+conda create --name stcp python=3.8
+conda activate stcp
+python -m pip install --upgrade pip
+pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 -f https://download.pytorch.org/whl/torch_stable.html
+pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
+pip install -r requirements.txt
 ```
+
 ## SDF from Oriented Point Cloud Experiment
-We provide code for the SDF fitting from Oriented Point Cloud experiment (Section 5.1.1).
+We provide code for the SDF fitting from Oriented Point Cloud experiment as described in Section 5.1.1.
 
-Run the following script for regular training without stochastic preconditioning:
-```
-hi
-```
+We experiment with a variety of neural field representations:
 
-Add `--sp y` to train with stochastic preconditioning as following:
+### Hash Grid Encoding 
+Run `train_hashgrid.sh` for training with hash grid encoding without and with stochastic preconditioning.
+### Fourier Feature Encoding 
+Run `train_fourier.sh` for training with fourier feature encoding without and with stochastic preconditioning:
+### Triplane-based Feature Encoding 
+Run `train_pet.sh` for training with [triplane-based feature encoding](https://github.com/yiqun-wang/PET-NeuS) without and with stochastic preconditioning:
+
+### Mesh Extraction
+After training, one can run the following script to extract a mesh from a specified checkpoint: 
 ```
-hi
+python experiment_scripts/test_sdf.py --checkpoint_path './logs/EXPNAME/checkpoints/model_latest.pth' --experiment_name EXPNAME --out_name OUTPUTNAME
 ```
 
 ## Credits 

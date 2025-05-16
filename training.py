@@ -76,13 +76,6 @@ def plot_lossscape(model, train_dataloader, loss_fn, opt=None):
             idx += shape_len
         return state_dict
     
-    #model.load_state_dict(torch.load(opt.checkpoint_path3))
-    # model.cuda()
-    # weight3=[]
-    # for n, p in model.named_parameters():
-    #     weight3.append(p.flatten())
-    # weight3 = torch.cat(weight3)
-    
     state_dict_shape = {}
     model.load_state_dict(torch.load(opt.checkpoint_path1))
     model.cuda()
@@ -91,8 +84,6 @@ def plot_lossscape(model, train_dataloader, loss_fn, opt=None):
         state_dict_shape[n] = p.shape
         weight1.append(p.flatten())
     weight1 = torch.cat(weight1)
-    #print(state_dict_shape)
-    
     weight2_dict = torch.load(opt.checkpoint_path2)
     model.load_state_dict(torch.load(opt.checkpoint_path2))
     weight2=[]
@@ -110,45 +101,15 @@ def plot_lossscape(model, train_dataloader, loss_fn, opt=None):
     dir1 = (weight2 - weight1) / steps 
     dir2 = (weight3 - weight1) / steps
     
-    #dir1 = torch.randn_like(weight1) 
-    #dir1 = dir1 / 100000 #* torch.max(weight1) / torch.max(dir1) 
-    #dir2 = torch.randn_like(weight1)
-    #dir2 = dir2 / 100000 #* torch.max(weight1) /torch.max(dir2)
-    
-    # weight2_check = weight1 + (3*opt.dim/4) * dir1 + 0 * dir2
-    # print(weight2)
-    # print(weight2_check)
-    # print((weight2-weight2_check).sum())
-    # assert torch.allclose(weight2, weight2_check)
-    # weight2_dict_check = weights2statedict(weight2_check, state_dict_shape)
-    # assert torch.allclose(weight2_dict_check['glin4.weight'], weight2_dict['glin4.weight'])
-    
     out_name = os.path.basename(opt.checkpoint_path1)[:-4] + "_" + os.path.basename(opt.checkpoint_path2)[:-4]
     (model_input, gt) = next(iter(train_dataloader))
     lossscape = [] 
-    
-    # start = 20
-    # end = 35
-    
-    # start_y=-40
-    # end_y=20
     
     start = 26
     end = 29
     
     start_y = -18
     end_y = -10
-    
-    # start = 31.5
-    # end = 34.5
-    
-    # start_y = -5.5
-    # end_y = 2.5
-    
-    # start = -128
-    # end = 128
-    # start_y = -128
-    # end_y = 128
     
     for i in tqdm(range(opt.dim)):
         lossscape_i = []
@@ -165,11 +126,7 @@ def plot_lossscape(model, train_dataloader, loss_fn, opt=None):
             # get loss       
             model_input = {key: value.cuda() for key, value in model_input.items()}
             gt = {key: value.cuda() for key, value in gt.items()}
-            
-            #if double_precision:
-            #    model_input = {key: value.double() for key, value in model_input.items()}
-            #    gt = {key: value.double() for key, value in gt.items()}
-            
+
             model_output = model(model_input)
             losses = loss_fn(model_output, gt, 
                              sdf_coeff=float(opt.sdf_coeff), 
@@ -178,7 +135,6 @@ def plot_lossscape(model, train_dataloader, loss_fn, opt=None):
                              grad_coeff=float(opt.grad_coeff),
                              train_type=opt.train_type,
                              use_gradient=False)
-            #print(losses)
             total_loss = 0
             for loss_name, loss in losses.items():
                 total_loss += loss.mean() 
@@ -188,7 +144,6 @@ def plot_lossscape(model, train_dataloader, loss_fn, opt=None):
         lossscape.append(lossscape_i)
     lossscape = torch.stack(lossscape, dim=0)
     np.save(f'{opt.outdir}/{out_name}_lossscape.npy', lossscape.detach().cpu().numpy())
-    print(lossscape)
     
     plt.figure(figsize=(9, 8))
     X = np.linspace(start, end, opt.dim)
@@ -199,18 +154,13 @@ def plot_lossscape(model, train_dataloader, loss_fn, opt=None):
     plt.gca().get_xaxis().set_visible(False)
     plt.gca().get_yaxis().set_visible(False)
     plt.savefig(f'{opt.outdir}/{out_name}_contour_{nlevels}.pdf')
-    print(lossscape.shape)
     exit()
 
 def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_checkpoint, model_dir, loss_fn,
           summary_fn, val_dataloader=None, double_precision=False, clip_grad=False, use_lbfgs=False, loss_schedules=None, opt=None):
     
     torch.autograd.set_detect_anomaly(True) 
-    #optim = torch.optim.Adam(lr=lr, params=model.parameters())
-    if 'ingp' not in opt.model_type:
-        optim = torch.optim.Adam(model.parameters())
-    else:
-        optim = torch.optim.Adam(model.get_param_groups())
+    optim = torch.optim.Adam(lr=lr, params=model.parameters())
 
     # copy settings from Raissi et al. (2019) and here 
     # https://github.com/maziarraissi/PINNs
@@ -224,16 +174,16 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
     writer = SummaryWriter(summaries_dir) 
 
     total_steps = 0
-    #last_epoch_saved = None
     with tqdm(total=len(train_dataloader) * epochs) as pbar:
         train_losses = []
         for epoch in range(epochs):
+            
+            # save checkpoint 
             if not epoch % epochs_til_checkpoint and epoch:
                 torch.save(model.state_dict(),
                            os.path.join(checkpoints_dir, 'model_latest.pth'))
-                np.savetxt(os.path.join(checkpoints_dir, 'train_losses_latest.txt'),
-                           np.array(train_losses))
-
+                
+            # extract mesh 
             for step, (model_input, gt) in enumerate(train_dataloader):
                 if total_steps in opt.steps_for_ckpt:
                     torch.save(model.state_dict(),
@@ -271,10 +221,8 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
                     sdf_decoder = SDFDecoder(model)
                     sdf_meshing.create_mesh(sdf_decoder, os.path.join(opt.outdir, str(total_steps)), N=opt.resolution, opt=opt)
                     sdf_decoder.train()
-                    
                  
                 start_time = time.time()
-            
                 model_input = {key: value.cuda() for key, value in model_input.items()}
                 gt = {key: value.cuda() for key, value in gt.items()}
 
@@ -340,19 +288,8 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
                 train_losses.append(train_loss.item())
                 writer.add_scalar("total_train_loss", train_loss, total_steps)
                 
-                # for n,p in model.named_parameters():
-                #     if '6' in n:
-                #         print(n)
-                #         print(p)
-                
                 if not total_steps % steps_til_summary or total_steps==0 or total_steps % opt.save_results_per_step == 0:
                     summary_fn(model, model_input, gt, model_output, writer, total_steps, opt=opt)
-                
-                # for n,p in model.named_parameters():
-                #     if '6' in n:
-                #         print(n)
-                #         print(p)
-                # exit()
                     
                 if not use_lbfgs:
                     optim.zero_grad()
@@ -384,11 +321,24 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
                         model.train()
                         
                 total_steps += 1
-
+        
+        # save final results
         torch.save(model.state_dict(),
                    os.path.join(checkpoints_dir, 'model_final.pth'))
-        np.savetxt(os.path.join(checkpoints_dir, 'train_losses_final.txt'),
-                   np.array(train_losses))
+        class SDFDecoder(torch.nn.Module):
+            def __init__(self, model):
+                super().__init__()
+                self.model = model
+            def forward(self, coords):
+                model_in = {'coords': coords}
+                stochastic_state =self.model.stochasticP
+                self.model.stochasticP = False 
+                out = self.model(model_in)['model_out']
+                self.model.stochasticP = stochastic_state
+                return out 
+        sdf_decoder = SDFDecoder(model)
+        sdf_meshing.create_mesh(sdf_decoder, os.path.join(opt.outdir, 'final'), N=opt.resolution, opt=opt)
+        sdf_decoder.train()
 
 
 class LinearDecaySchedule():

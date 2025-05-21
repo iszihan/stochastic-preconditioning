@@ -78,7 +78,7 @@ class Finer(nn.Module):
                                           np.sqrt(6 / hidden_features) / hidden_omega_0)
         self.net.append(final_linear)
         self.net = nn.Sequential(*self.net)
-        self.stochastic = stochastic
+        self.stochasticP = stochastic
         self.stc_size = 0.0
         self.stc_type = 'sched'
 
@@ -86,13 +86,11 @@ class Finer(nn.Module):
         coords = coords['coords']
         coords.requires_grad_(True) #[-1,1]
         
-        if self.stochastic:
+        if self.stochasticP:
             coords_normalized = ( coords + 1.0 ) / 2.0
-            mean = torch.zeros_like(coords[0])
-            sd = torch.ones_like(coords[0]) 
-            noise = self.stc_size * torch.normal(mean, sd)
+            noise = self.stc_size * torch.normal(torch.zeros_like(coords[0]), torch.ones_like(coords[0]))
             coords_normalized = coords_normalized + noise
-            
+            # reflect around boundary
             coords_normalized = coords_normalized % 2 
             coords_normalized[coords_normalized>1] = 2 - coords_normalized[coords_normalized>1]
             coords_normalized = coords_normalized * 2.0 - 1.0
@@ -619,9 +617,7 @@ class INGP(MetaModule):
         coords_org.requires_grad_(True)
         coords = ( coords_org + 1.0 ) / 2.0 # to [0,1]
         if self.stochasticP:
-            mean = torch.zeros_like(coords[0])
-            sd = torch.ones_like(coords[0]) 
-            noise = self.sp_alpha * torch.normal(mean, sd)
+            noise = self.sp_alpha * torch.normal(torch.zeros_like(coords[0]), torch.ones_like(coords[0]))
             coords = coords + noise
             # reflect around boundary
             coords = coords % 2 

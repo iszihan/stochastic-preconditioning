@@ -9,6 +9,8 @@
 [Nicholas Sharp](https://nmwsharp.com/)<br>
 ACM Transaction on Graphics (Proceedings of SIGGRAPH North America 2025)
 
+Stochastic preconditioning adds spatial noise to query locations during neural field optimization; it can be formalized as a stochastic estimate for a blur operator. This simple technique eases optimization and significantly improves quality for neural fields optimization, matching or outperforming custom-designed policies and coarse-to-fine schemes.
+
 ## Get started
 You can set up a conda environment with all dependencies like so:
 ```
@@ -19,6 +21,8 @@ pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 -f https://download.py
 pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch
 pip install -r requirements.txt
 ```
+## Adding stochastic preconditioning to your training code is easy! 
+TODO
 
 ## SDF from Oriented Point Cloud Experiment
 We provide code for the SDF fitting from Oriented Point Cloud experiment as described in Section 5.1.1.
@@ -31,15 +35,17 @@ Run `train_hashgrid.sh` for training with hash grid encoding without and with st
 Run `train_fourier.sh` for training with fourier feature encoding without and with stochastic preconditioning:
 ### Triplane-based Feature Encoding 
 Run `train_pet.sh` for training with [triplane-based feature encoding](https://github.com/yiqun-wang/PET-NeuS) without and with stochastic preconditioning:
+### Sinusoidal INR ([FINER](https://arxiv.org/abs/2312.02434))
+Run `train_finer.sh` for training with FINER network without and with stochastic preconditioning.
 
-### Mesh Extraction
+## Mesh Extraction
 The training scripts above always extract a mesh at the end of training. One can also run the following script to extract a mesh from a specified checkpoint: 
 ```
 python experiment_scripts/test_sdf.py --checkpoint_path './logs/EXPNAME/checkpoints/CKPTNAME.pth' --experiment_name EXPNAME --out_name OUTPUTNAME
 ```
 
 ## Credits 
-This repo is built from existing codes from [Siren](https://github.com/vsitzmann/siren), [SDFStudio](https://github.com/autonomousvision/sdfstudio) and [PET-NeuS](https://github.com/yiqun-wang/PET-NeuS). We thank the maintainers for their contribution to the community!
+This repo is built from existing codes from [Siren](https://github.com/vsitzmann/siren), [SDFStudio](https://github.com/autonomousvision/sdfstudio), [PET-NeuS](https://github.com/yiqun-wang/PET-NeuS) and [FINER](https://github.com/liuzhen0212/FINER). We thank the maintainers for their contribution to the community!
 
 <!-- ## Citation
 If you find our work useful in your research, please cite:

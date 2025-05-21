@@ -1,11 +1,7 @@
-'''Test script for experiments in paper Sec. 4.2, Supplement Sec. 3, reconstruction from laplacian.
-'''
-
 # Enable import from parent package
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import torch
 import modules, utils
 import sdf_meshing
@@ -136,10 +132,6 @@ if opt.vis == 'y':
     ps.show()
     exit()
     
-    
-    
-    
-
 root_path = os.path.join(opt.logging_root, opt.experiment_name)
 utils.cond_mkdir(root_path)
 sdf_meshing.create_mesh(sdf_decoder, os.path.join(root_path, opt.out_name), N=opt.resolution,opt=opt)

@@ -119,13 +119,17 @@ init_wandb(conf,
            mode="online" if opt.online=='y' else "offline")
 
 ### Define the model.
-model = modules.INGP(stochasticP=(opt.sp=='y'), 
-                     n_input_dim=3, 
-                     geoinit=(opt.geoinit=='y'), 
-                     bias=float(opt.geoinit_bias), 
-                     num_freq = int(opt.fourier_num_freq),
-                     tri_res = int(opt.tri_res),
-                     opt=opt)
+if opt.model_type == 'ingp':
+    model = modules.INGP(stochasticP=(opt.sp=='y'), 
+                        n_input_dim=3, 
+                        geoinit=(opt.geoinit=='y'), 
+                        bias=float(opt.geoinit_bias), 
+                        num_freq = int(opt.fourier_num_freq),
+                        tri_res = int(opt.tri_res),
+                        opt=opt)
+elif opt.model_type == 'finer':
+    model = modules.Finer(in_features=3, out_features=1, hidden_layers=3, hidden_features=256,
+                          first_omega_0=30, hidden_omega_0=30, first_bias_scale=None, scale_req_grad=False, stochastic=(opt.sp=='y'))
 model.cuda()
 
 # Define the loss

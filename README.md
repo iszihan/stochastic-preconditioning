@@ -22,7 +22,24 @@ pip install git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/to
 pip install -r requirements.txt
 ```
 ## Adding stochastic preconditioning to your training code is easy! 
-TODO
+You probably don't even need to run this repo to try adding our method. Look [here](https://github.com/iszihan/stochastic-preconditioning/blob/cc36b978e58bde7b93c0c09d74f903bb88f91065/modules.py#L619) for the few lines of code you need for adding stochastic preconditioning. 
+
+For example,
+<pre class="language-python"><code class="language-python">
+class Model(nn.Module):
+    def __init__(self):
+        ...
+        
+    def forward(self, coord):
+        <mark>if self.stochastic_preconditioning_enabled:</mark>
+            <mark>noise = torch.normal(torch.zeros_like(coords[0]), torch.ones_like(coords[0]))</mark>
+            <mark>coord = coord + noise</mark>
+            <mark># reflect around boundary as described in paper Section 4.1 </mark>
+            <mark>coords = coords % 2 </mark>
+            <mark>coords[coords>1] = 2 - coords[coords>1]</mark>
+        output = self.net(coord)
+        return output
+</code></pre>
 
 ## SDF from Oriented Point Cloud Experiment
 We provide code for the SDF fitting from Oriented Point Cloud experiment as described in Section 5.1.1.

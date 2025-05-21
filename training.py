@@ -160,7 +160,11 @@ def train(model, train_dataloader, epochs, lr, steps_til_summary, epochs_til_che
           summary_fn, val_dataloader=None, double_precision=False, clip_grad=False, use_lbfgs=False, loss_schedules=None, opt=None):
     
     torch.autograd.set_detect_anomaly(True) 
-    optim = torch.optim.Adam(lr=lr, params=model.parameters())
+    
+    if 'ingp' not in opt.model_type:
+        optim = torch.optim.Adam(model.parameters())
+    else:
+        optim = torch.optim.Adam(model.get_param_groups())
 
     # copy settings from Raissi et al. (2019) and here 
     # https://github.com/maziarraissi/PINNs

@@ -1,5 +1,5 @@
 #!/bin/bash
-gpui=0
+gpui=9
     
 CUDA_VISIBLE_DEVICES=$gpui python experiment_scripts/train_sdf.py \
 --wandb_proj "Point-Normal SDF Fitting" \

@@ -32,7 +32,7 @@ class Model(nn.Module):
         
     def forward(self, coord):
         <mark>if self.stochastic_preconditioning_enabled:</mark>
-            <mark>noise = torch.normal(torch.zeros_like(coords[0]), torch.ones_like(coords[0]))</mark>
+            <mark>noise = self.alpha * torch.normal(torch.zeros_like(coords[0]), torch.ones_like(coords[0]))</mark>
             <mark>coord = coord + noise</mark>
             <mark># reflect around boundary as described in paper Section 4.1 </mark>
             <mark>coords = coords % 2 </mark>
@@ -55,11 +55,7 @@ Run `train_pet.sh` for training with [triplane-based feature encoding](https://g
 ### Sinusoidal INR ([FINER](https://arxiv.org/abs/2312.02434))
 Run `train_finer.sh` for training with FINER network without and with stochastic preconditioning.
 
-## Mesh Extraction
-The training scripts above always extract a mesh at the end of training. One can also run the following script to extract a mesh from a specified checkpoint: 
-```
-python experiment_scripts/test_sdf.py --checkpoint_path './logs/EXPNAME/checkpoints/CKPTNAME.pth' --experiment_name EXPNAME --out_name OUTPUTNAME
-```
+The training scripts above always extract a mesh at the end of training. 
 
 ## Credits 
 This repo is built from existing codes from [Siren](https://github.com/vsitzmann/siren), [SDFStudio](https://github.com/autonomousvision/sdfstudio), [PET-NeuS](https://github.com/yiqun-wang/PET-NeuS) and [FINER](https://github.com/liuzhen0212/FINER). We thank the maintainers for their contribution to the community!

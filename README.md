@@ -1,7 +1,7 @@
 # Stochastic Preconditioning for Neural Field Optimization [Siggraph 2025]
 <img src="./assets/teaser_website_wistia.png" width="100%">
 
-### [Project Page](https://research.nvidia.com/labs/toronto-ai/stochastic-preconditioning/) | [Paper](https://arxiv.org/abs/2006.09661) 
+### [Project Page](https://research.nvidia.com/labs/toronto-ai/stochastic-preconditioning/) | [Paper](https://arxiv.org/abs/2505.20473) 
 
 [Selena Ling](https://iszihan.github.io/),
 [Merlin Nimier-David](https://merlin.nimierdavid.fr/),
